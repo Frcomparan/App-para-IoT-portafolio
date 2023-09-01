@@ -32,13 +32,19 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
         data = json.loads(post_data.decode())
 
+        # Code to handle the counter changes
+        # if data have an "action" attribute with the content "inc", 
+        # the counter increment accoding with the specified step
+        # otherwise if data have an "action" attribute with the content "dec, 
+        # the counter decrement accoding with the specified step
         for key in data:
             if key == 'action':
+                step = data['step']
                 if (data['action'] == 'inc'):
-                    counter += 1
+                    counter += step
                     print(f'Counter incremented to {counter}')
                 if (data['action'] == 'dec'):
-                    counter -= 1
+                    counter -= step
                     print(f'Counter decremented to {counter}')
 
 
