@@ -1,7 +1,9 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 
+# Contador del programa
 counter = 0
+
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     # Establece la configuración inicial de una respuesta
     # Estatus OK (200)
@@ -39,14 +41,13 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         # the counter decrement accoding with the specified step
         for key in data:
             if key == 'action':
-                step = data['step']
-                if (data['action'] == 'inc'):
-                    counter += step
+                quantity = data['quantity']
+                if (data['action'] == 'asc'):
+                    counter += quantity
                     print(f'Counter incremented to {counter}')
-                if (data['action'] == 'dec'):
-                    counter -= step
+                if (data['action'] == 'desc'):
+                    counter -= quantity
                     print(f'Counter decremented to {counter}')
-
 
         # Respond to the client
         response = f"The counter change to {counter}"
