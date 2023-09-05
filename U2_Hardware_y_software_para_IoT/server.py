@@ -73,7 +73,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
         # Respond to the client
         response = f"The counter change to {counter}"
-        response_data = json.dumps({"message": "Successful request", "result": response})
+        response_data = json.dumps({"message": "Successful request", "result": response, "value": counter})
         self._set_response("application/json")
         self.wfile.write(response_data.encode())
 
