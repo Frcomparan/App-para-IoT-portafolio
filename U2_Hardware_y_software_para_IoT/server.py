@@ -13,6 +13,10 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", content_type)
         self.end_headers()
 
+    def throw_custom_error(self, message, code = 400):
+        self._set_response("application/json", code)
+        self.wfile.write(json.dumps({"message": message}).encode())
+
     # Metodo GET, que manda la cadena indicada con cada petición
     def do_GET(self):
         self._set_response()
@@ -35,8 +39,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         try:
             data = json.loads(post_data.decode())
         except:
-            self._set_response("application/json", 404)
-            self.wfile.write(json.dumps({"message": "Invalid JSON"}).encode())
+            self.throw_custom_error("Invalid JSON")
             return
 
         # Code to handle the counter changes
@@ -44,15 +47,29 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         # the counter increment accoding with the specified step
         # otherwise if data have an "action" attribute with the content "dec, 
         # the counter decrement accoding with the specified step
-        for key in data:
-            if key == 'action':
-                quantity = data['quantity']
-                if (data['action'] == 'asc'):
-                    counter += quantity
-                    print(f'Counter incremented to {counter}')
-                if (data['action'] == 'desc'):
-                    counter -= quantity
-                    print(f'Counter decremented to {counter}')
+    
+        # Check if action and quantity are present
+        if (data.get("action") is None or data.get("quantity") is None):
+            self.throw_custom_error("Missing action or quantity")
+            return
+
+        # Check if action is vcalid
+        if (data['action'] != 'asc' and data['action'] != 'desc'):
+            self.throw_custom_error("Invalid action")
+            return
+        
+        # Check if quantity is valid
+        try:
+            quantity = int(data['quantity'])
+        except:
+            self.throw_custom_error("Invalid quantity")
+            return
+        if (data['action'] == 'asc'):
+            counter += quantity
+            print(f'Counter incremented to {counter}')
+        if (data['action'] == 'desc'):
+            counter -= quantity
+            print(f'Counter decremented to {counter}')
 
         # Respond to the client
         response = f"The counter change to {counter}"
