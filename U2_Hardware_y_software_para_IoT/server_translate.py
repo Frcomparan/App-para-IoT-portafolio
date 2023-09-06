@@ -66,7 +66,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
         response = requests.post(url, data=payload, headers=headers)
 
-        translation = response.json()["data"]["translation"][0]["translatedText"]
+        translation = response.json()["data"]["translations"][0]["translatedText"]
 
         # Respond to the client
         response_data = json.dumps({"message": "Successful request", "translation": translation,})
