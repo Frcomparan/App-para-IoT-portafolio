@@ -19,7 +19,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", content_type)
         self.end_headers()
 
-    def throw_custom_error(self, message, code = 400):
+    def throw_custom_error(self, message, code=400):
         self._set_response("application/json", code)
         self.wfile.write(json.dumps({"message": message}).encode())
 
@@ -45,17 +45,22 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         if (data.get("text") is None):
             self.throw_custom_error("Text wasnt provided")
             return
+        
+        if (data.get("from") is None or data.get("to") is None):
+            self.throw_custom_error("You need to specify the origin languge and the traslation language")
+            return
 
         text = data['text']
+        target = data['to']
+        source = data['from']
 
         # Obtain translation
-        
         url = "https://google-translate1.p.rapidapi.com/language/translate/v2"
 
         payload = {
             "q": text,
-            "target": "en",
-            "source": "es"
+            "target": target,
+            "source": source
         }
         headers = {
             "content-type": "application/x-www-form-urlencoded",
