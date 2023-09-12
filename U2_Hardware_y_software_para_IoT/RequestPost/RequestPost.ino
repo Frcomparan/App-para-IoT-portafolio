@@ -60,9 +60,11 @@ void loop() {
         DynamicJsonDocument jsonDoc(64);
         if (ascRequested) {
           jsonDoc["action"] = "asc";
+          Serial.println("Ascender");
           ascRequested = false; // Restablece la bandera después de la solicitud
         } else if (descRequested) {
           jsonDoc["action"] = "desc";
+          Serial.println("Descender");
           descRequested = false; // Restablece la bandera después de la solicitud
         }
         jsonDoc["quantity"] = 1; // Cambia la cantidad según tu necesidad
