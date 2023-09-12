@@ -1,7 +1,7 @@
 #include <WiFi.h>
 
 const char *ssid = "UwU_wifi";
-const char *password = "password";
+const char *password = "12345678";
 
 void setup()
 {

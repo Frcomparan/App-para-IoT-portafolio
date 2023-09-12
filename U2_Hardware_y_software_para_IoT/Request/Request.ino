@@ -5,7 +5,7 @@ const char *ssid = "esp_wifi";
 const char *password = "password";
 
 //Your Domain name with URL path or IP address with path
-String serverName = "http://192.168.4.13:7800/";
+String serverName = "http://192.168.4.8:7800/";
 
 // the following variables are unsigned longs because the time, measured in
 // milliseconds, will quickly become a bigger number than can be stored in an int.
