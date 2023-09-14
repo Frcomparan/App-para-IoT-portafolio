@@ -2,10 +2,10 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-const char *ssid = "esp_wifi";
-const char *password = "password";
+const char *ssid = "DESKTOP-6I0VMRG 9173";
+const char *password = "diablo666";
 
-String serverName = "http://192.168.4.8:7800/";
+String serverName = "http://192.168.137.222:7800/";
 
 unsigned long lastTime = 0;
 unsigned long timerDelay = 5000;
