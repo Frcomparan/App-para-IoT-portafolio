@@ -1,91 +1,99 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import os
 
-# Contador del programa
-counter = 0
+contador = 0
 led = 0
 
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
-    # Establece la configuración inicial de una respuesta
-    # Estatus OK (200)
-    # Cabecera, por defecto "text/plain", pero puede ser modificada
-    def _set_response(self, content_type="text/plain", code=200):
-        self.send_response(code)
-        self.send_header("Content-type", content_type)
-        self.end_headers()
 
-    def throw_custom_error(self, message, code = 400):
-        self._set_response("application/json", code)
-        self.wfile.write(json.dumps({"message": message}).encode())
+  def _set_response(self, content_type="text/plain", status_code=200):
+    self.send_response(status_code)
+    self.send_header("Content-type", content_type)
+    self.end_headers()
 
-    # Metodo GET, que manda la cadena indicada con cada petición
-    def do_GET(self):
-        self._set_response("application/json")
-        # response = f"<h1>Hola mundo</h1>"
-        response = json.dumps({"message": f"The counter is: {counter}", "counter": counter, "led": led})
-        self.wfile.write(response.encode()) 
+  def throw_custom_error(self, message, status_code=400):
+    self._set_response("application/json", status_code)
+    self.wfile.write(json.dumps({"message": message}).encode())
 
-    # Función que procesa las peticiones POST del servidor
-    def do_POST(self):
-        global counter
-        content_length = int(self.headers["Content-Length"])
-        post_data = self.rfile.read(content_length)
+  def do_GET(self):
+    # Set the response headers
+    print(self.path)
+    global led
+    if self.path == "/":
+      try:
+        # Get the absolute path to the HTML file
+        self._set_response(content_type="text/html")
+        with open("./index.html", "r", encoding="utf-8") as file_to_open:
+          # Write the HTML content to the response
+          self.wfile.write(file_to_open.read().encode())
+      except Exception as e:
+        print(f"Error: {e}")
+        self.wfile.write(f"Error: {e}".encode())
+    elif self.path == "/counter":
+      self._set_response()
+      self.wfile.write(json.dumps({"contador": contador}).encode())
+    elif self.path == "/led":
+      self._set_response()
+      self.wfile.write(json.dumps({"led": led}).encode())
+    elif self.path == "/led/on":
+      self._set_response()
+      led = 1
+      self.wfile.write(json.dumps({"state": "El led se ha encendido"}).encode())
+    elif self.path == "/led/off":
+      self._set_response()
+      led = 0
+      self.wfile.write(json.dumps({"state": "El led se ha apagado"}).encode())
+    else:
+      # send bad request response
+      self.throw_custom_error("Invalid path")
 
-        # Print the complete HTTP request
-        print("\n----- Incoming POST Request -----")
-        print(f"Requestline: {self.requestline}")
-        print(f"Headers:\n{self.headers}")
-        print(f"Body:\n{post_data.decode()}")
-        print("-------------------------------")
+  def do_POST(self):
+    content_length = int(self.headers["Content-Length"])
+    post_data = self.rfile.read(content_length)
 
-        try:
-            data = json.loads(post_data.decode())
-        except:
-            self.throw_custom_error("Invalid JSON")
-            return
+    try:
+      body_json = json.loads(post_data.decode())
+    except:
+      self.throw_custom_error("Invalid JSON")
+      return
 
-        # Code to handle the counter changes
-        # if data have an "action" attribute with the content "inc", 
-        # the counter increment accoding with the specified step
-        # otherwise if data have an "action" attribute with the content "dec, 
-        # the counter decrement accoding with the specified step
-    
-        # Check if action and quantity are present
-        if (data.get("action") is None or data.get("quantity") is None):
-            self.throw_custom_error("Missing action or quantity")
-            return
+    global contador
 
-        # Check if action is vcalid
-        if (data['action'] != 'asc' and data['action'] != 'desc'):
-            self.throw_custom_error("Invalid action")
-            return
-        
-        # Check if quantity is valid
-        try:
-            quantity = int(data['quantity'])
-        except:
-            self.throw_custom_error("Invalid quantity")
-            return
-        if (data['action'] == 'asc'):
-            counter += quantity
-            print(f'Counter incremented to {counter}')
-        if (data['action'] == 'desc'):
-            counter -= quantity
-            print(f'Counter decremented to {counter}')
+    # Check if action and quantity are present
+    if (body_json.get('action') is None or body_json.get('quantity') is None):
+      self.throw_custom_error("Missing action or quantity")
+      return
 
-        # Respond to the client
-        response = f"The counter change to {counter}"
-        response_data = json.dumps({"message": "Successful request", "result": response, "value": counter})
-        self._set_response("application/json")
-        self.wfile.write(response_data.encode())
+    # Check if action is valid
+    if (body_json['action'] != 'asc' and body_json['action'] != 'desc'):
+      self.throw_custom_error("Invalid action")
+      return
 
-# Establecemos la creacion del servidor, del tipo HTTP, 
-# y establecemos el puerto por el que escuchara
+    # Check if quantity is valid, integer
+    try:
+      int(body_json['quantity'])
+    except:
+      self.throw_custom_error("Invalid quantity")
+      return
+
+    if (body_json['action'] == 'asc'):
+      contador += int(body_json['quantity'])
+    elif (body_json['action'] == 'desc'):
+      contador -= int(body_json['quantity'])
+
+    # Respond to the client
+    response_data = json.dumps({"message": "Received POST data, new value: " + str(contador), "status": "OK"})
+    self._set_response("application/json")
+    self.wfile.write(response_data.encode())
+
+
 def run_server(server_class=HTTPServer, handler_class=MyHTTPRequestHandler, port=7800):
-    server_address = ("", port)
-    httpd = server_class(server_address, handler_class)
-    print(f"Starting server on port {port}...")
-    httpd.serve_forever()
+  server_address = ("", port)
+  httpd = server_class(server_address, handler_class)
+  print(f"Starting server on port {port}...")
+  httpd.serve_forever()
+
 
 if __name__ == "__main__":
-    run_server()
+  run_server()
