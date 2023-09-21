@@ -1,11 +1,17 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <DHT.h>
 
-const char *ssid = "DESKTOP-6I0VMRG 9173";
-const char *password = "diablo666";
+#define DHTPIN 18
+#define DHTTYPE DHT11
 
-String serverName = "http://192.168.137.222:7800/";
+DHT dht(DHTPIN, DHTTYPE);
+
+const char *ssid = "W_Aula_WB11";
+const char *password = "itcolima6";
+
+String serverName = "http://e672-187-190-35-202.ngrok-free.app";
 
 unsigned long lastTime = 0;
 unsigned long timerDelay = 3000;
@@ -21,7 +27,7 @@ bool descRequested = false; // Bandera para controlar la solicitud "desc"
 
 void setup() {
   Serial.begin(115200);
-
+  dht.begin();
   WiFi.begin(ssid, password);
   Serial.println("Connecting");
   while(WiFi.status() != WL_CONNECTED) {
@@ -41,6 +47,18 @@ void setup() {
 }
 
 void loop() {
+  // Temperatura
+  float temperature = dht.readTemperature();
+  float humidity = dht.readHumidity();
+
+  if (isnan(temperature)) {
+    Serial.println("Error al leer el sensor DHT!");
+    return;
+  }
+
+  Serial.println(temperature);
+  Serial.println(humidity);
+
   // Verifica si el botón "asc" se ha presionado
   if (digitalRead(buttonPinAsc) == HIGH && !ascRequested) {
     ascRequested = true;
@@ -51,80 +69,137 @@ void loop() {
     descRequested = true;
   }
 
-  HTTPClient http;
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
 
-  String serverPathLed = serverName + "/led";
+    // Envio del POST de la temperatura
+    String serverPath = serverName + "/temperature";
 
-  http.begin(serverPathLed.c_str());
+    http.begin(serverPath.c_str());
 
-  // Send HTTP GET request
-  int httpResponseCodeGET = http.GET();
-  
-  if (httpResponseCodeGET>0) {
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpResponseCodeGET);
-    String payload = http.getString();
-    Serial.println(payload);
+    DynamicJsonDocument jsonDocTemp(64);
 
-    DynamicJsonDocument doc(1024);
-    deserializeJson(doc, payload);
+    jsonDocTemp["temperature"] = temperature; // Cambia la cantidad según tu necesidad
 
-    int led = doc["led"];
-    Serial.println(led);
+    String jsonString;
+    serializeJson(jsonDocTemp, jsonString);
 
-    if (led == 0) {
-      digitalWrite(ledPin, LOW);
+    http.addHeader("Content-Type", "application/json");
+
+    int httpResponseCode = http.POST(jsonString);
+
+    if (httpResponseCode > 0) {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+      String payload = http.getString();
+      Serial.println(payload);
+    } else {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCode);
     }
-    if (led == 1) {
-      digitalWrite(ledPin, HIGH);
+
+    http.end();
+
+    serverPath = serverName + "/humidity";
+
+    http.begin(serverPath.c_str());
+
+    DynamicJsonDocument jsonDocHum(64);
+
+    jsonDocHum["humidity"] = humidity; // Cambia la cantidad según tu necesidad
+
+    String jsonStringHum;
+    serializeJson(jsonDocHum, jsonStringHum);
+
+    http.addHeader("Content-Type", "application/json");
+
+    httpResponseCode = http.POST(jsonStringHum);
+
+    if (httpResponseCode > 0) {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+      String payload = http.getString();
+      Serial.println(payload);
+    } else {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCode);
+    }
+
+    http.end();
+
+    // Get del status del led
+    String serverPathLed = serverName + "/led";
+
+    http.begin(serverPathLed.c_str());
+
+    // Send HTTP GET request
+    int httpResponseCodeGET = http.GET();
+    
+    if (httpResponseCodeGET>0) {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCodeGET);
+      String payload = http.getString();
+      Serial.println(payload);
+
+      DynamicJsonDocument doc(1024);
+      deserializeJson(doc, payload);
+
+      int led = doc["led"];
+      Serial.println(led);
+
+      if (led == 0) {
+        digitalWrite(ledPin, LOW);
+      }
+      if (led == 1) {
+        digitalWrite(ledPin, HIGH);
+      }
+    } else {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCodeGET);
+    }
+
+    http.end();
+
+    if (ascRequested || descRequested) {
+      if ((millis() - lastTime) > timerDelay) {
+          serverPath = serverName + "/led";
+
+          http.begin(serverPath.c_str());
+
+          DynamicJsonDocument jsonDoc(64);
+
+          if (ascRequested) {
+            jsonDoc["action"] = "asc";
+            ascRequested = false; // Restablece la bandera después de la solicitud
+          } else if (descRequested) {
+            jsonDoc["action"] = "desc";
+            descRequested = false; // Restablece la bandera después de la solicitud
+          }
+          jsonDoc["quantity"] = 1; // Cambia la cantidad según tu necesidad
+
+          String jsonStringCounter;
+          serializeJson(jsonDoc, jsonStringCounter);
+
+          http.addHeader("Content-Type", "application/json");
+
+          httpResponseCode = http.POST(jsonStringCounter);
+
+          if (httpResponseCode > 0) {
+            Serial.print("HTTP Response code: ");
+            Serial.println(httpResponseCode);
+            String payload = http.getString();
+            Serial.println(payload);
+          } else {
+            Serial.print("Error code: ");
+            Serial.println(httpResponseCode);
+          }
+
+          http.end();
+        lastTime = millis();
+      }
     }
   } else {
-    Serial.print("Error code: ");
-    Serial.println(httpResponseCodeGET);
+    Serial.println("WiFi Disconnected");
   }
-
-  http.end();
-
-  if (ascRequested || descRequested) {
-    if ((millis() - lastTime) > timerDelay) {
-      if (WiFi.status() == WL_CONNECTED) {
-        String serverPath = serverName + "/led";
-
-        http.begin(serverPath.c_str());
-
-        DynamicJsonDocument jsonDoc(64);
-
-        if (ascRequested) {
-          jsonDoc["action"] = "asc";
-          ascRequested = false; // Restablece la bandera después de la solicitud
-        } else if (descRequested) {
-          jsonDoc["action"] = "desc";
-          descRequested = false; // Restablece la bandera después de la solicitud
-        }
-        jsonDoc["quantity"] = 1; // Cambia la cantidad según tu necesidad
-
-        String jsonString;
-        serializeJson(jsonDoc, jsonString);
-
-        http.addHeader("Content-Type", "application/json");
-
-        int httpResponseCode = http.POST(jsonString);
-
-        if (httpResponseCode > 0) {
-          Serial.print("HTTP Response code: ");
-          Serial.println(httpResponseCode);
-          String payload = http.getString();
-          Serial.println(payload);
-        } else {
-          Serial.print("Error code: ");
-          Serial.println(httpResponseCode);
-        }
-
-        http.end();
-      } else {
-        Serial.println("WiFi Disconnected");
-      }
-      lastTime = millis();
-    }
-  }
+  delay(500);
 }

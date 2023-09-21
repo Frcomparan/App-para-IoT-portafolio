@@ -4,6 +4,8 @@ import os
 
 contador = 0
 led = 0
+temperature = 0
+humidity = 0
 
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
@@ -44,6 +46,12 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
       self._set_response()
       led = 0
       self.wfile.write(json.dumps({"state": "El led se ha apagado"}).encode())
+    elif self.path == "/temperature":
+      self._set_response()
+      self.wfile.write(json.dumps({"temperature": temperature}).encode())
+    elif self.path == "/humidity":
+      self._set_response()
+      self.wfile.write(json.dumps({"humidity": humidity}).encode())
     else:
       # send bad request response
       self.throw_custom_error("Invalid path")
@@ -56,6 +64,48 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
       body_json = json.loads(post_data.decode())
     except:
       self.throw_custom_error("Invalid JSON")
+      return
+    
+    if self.path == "/temperature":
+      if (body_json.get('temperature') is None):
+        self.throw_custom_error("Missing temperature")
+        return
+      
+      try:
+        float(body_json['temperature'])
+      except:
+        self.throw_custom_error("Invalid temperature")
+        return
+      
+      global temperature
+
+      temperature = body_json['temperature']
+
+      # Respond to the client
+      response_data = json.dumps({"message": "Received POST data, new temperature: " + str(temperature), "status": "OK"})
+      self._set_response("application/json")
+      self.wfile.write(response_data.encode())
+      return
+    
+    if self.path == "/humidity":
+      if (body_json.get('humidity') is None):
+        self.throw_custom_error("Missing humidity")
+        return
+      
+      try:
+        float(body_json['humidity'])
+      except:
+        self.throw_custom_error("Invalid humidity")
+        return
+      
+      global humidity
+
+      humidity = body_json['humidity']
+
+      # Respond to the client
+      response_data = json.dumps({"message": "Received POST data, new humidity: " + str(humidity), "status": "OK"})
+      self._set_response("application/json")
+      self.wfile.write(response_data.encode())
       return
 
     global contador
