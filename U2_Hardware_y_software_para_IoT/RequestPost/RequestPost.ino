@@ -11,7 +11,7 @@ DHT dht(DHTPIN, DHTTYPE);
 const char *ssid = "W_Aula_WB11";
 const char *password = "itcolima6";
 
-String serverName = "http://5bdc-187-190-35-202.ngrok-free.app";
+String serverName = "http://7dba-187-190-35-202.ngrok-free.app";
 
 unsigned long lastTime = 0;
 unsigned long timerDelay = 3000;

@@ -32,9 +32,14 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
       except Exception as e:
         print(f"Error: {e}")
         self.wfile.write(f"Error: {e}".encode())
+
+
+    # Path del contador
     elif self.path == "/counter":
       self._set_response()
       self.wfile.write(json.dumps({"contador": contador}).encode())
+
+    # Paths para controlar el led
     elif self.path == "/led":
       self._set_response()
       self.wfile.write(json.dumps({"led": led}).encode())
@@ -46,9 +51,13 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
       self._set_response()
       led = 0
       self.wfile.write(json.dumps({"state": "El led se ha apagado"}).encode())
+
+    # Path para obtener temperatura
     elif self.path == "/temperature":
       self._set_response()
       self.wfile.write(json.dumps({"temperature": temperature}).encode())
+    
+    # Path para obtener humedad
     elif self.path == "/humidity":
       self._set_response()
       self.wfile.write(json.dumps({"humidity": humidity}).encode())
@@ -66,6 +75,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
       self.throw_custom_error("Invalid JSON")
       return
     
+    # Path para actualizar el valor de la temperatura
     if self.path == "/temperature":
       if (body_json.get('temperature') is None):
         self.throw_custom_error("Missing temperature")
@@ -87,6 +97,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
       self.wfile.write(response_data.encode())
       return
     
+    # Path para actualizar el valor de la humedad
     if self.path == "/humidity":
       if (body_json.get('humidity') is None):
         self.throw_custom_error("Missing humidity")
@@ -108,6 +119,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
       self.wfile.write(response_data.encode())
       return
 
+    # Proceso para controlar las accciones del contador
     global contador
 
     # Check if action and quantity are present
