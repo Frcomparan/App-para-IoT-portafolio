@@ -170,3 +170,5 @@ poetry.toml
 
 # LSP config files
 pyrightconfig.json
+
+/U3_Redes_de_IoT/emqxsl-ca.crt
