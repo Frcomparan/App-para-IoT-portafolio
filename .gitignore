@@ -172,3 +172,4 @@ poetry.toml
 pyrightconfig.json
 
 /U3_Redes_de_IoT/emqxsl-ca.crt
+/U3_Redes_de_IoT/data.db

@@ -24,7 +24,7 @@ const char *password = "itcolima6";
 
 // MQTT Broker
 const char *mqtt_broker = "ue91a21d.ala.us-east-1.emqxsl.com"; // broker address
-const char *topic = "test";                                    // define topic
+const char *topic = "monitores/web";                           // define topic
 const char *mqtt_username = "mqtt";                            // username for authentication
 const char *mqtt_password = "password";                        // password for authentication
 const int mqtt_port = 8883;                                    // port of MQTT over TLS/SSL
@@ -107,7 +107,6 @@ void setup()
   pinMode(ledPin, OUTPUT);
   pinMode(ascPin, INPUT_PULLUP);
   pinMode(desPin, INPUT_PULLUP);
-
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
@@ -121,7 +120,7 @@ void callback(char *topic, byte *payload, unsigned int length)
   }
   Serial.println();
 
-// Create a dynamic JSON document based on the payload size
+  // Create a dynamic JSON document based on the payload size
   DynamicJsonDocument jsonDocument(1024);
 
   // Parse the JSON payload
@@ -158,18 +157,18 @@ void callback(char *topic, byte *payload, unsigned int length)
     }
   }
 
-   if (jsonDocument.containsKey("temperature"))
-   {
-      Serial.println("Temperature");
-      // Usar sprintf para formatear el mensaje
-      temp = true;
-   }
+  if (jsonDocument.containsKey("temperature"))
+  {
+    Serial.println("Temperature");
+    // Usar sprintf para formatear el mensaje
+    temp = true;
+  }
 
-      if (jsonDocument.containsKey("humidity"))
-   {
-      Serial.println("Humidity");
-      humd = true;
-   }
+  if (jsonDocument.containsKey("humidity"))
+  {
+    Serial.println("Humidity");
+    humd = true;
+  }
 
   Serial.println("-----------------------");
 }
@@ -196,6 +195,9 @@ void reconnect()
   }
 }
 
+unsigned long lastTempHumdSendTime = 0;
+const unsigned long tempHumdSendInterval = 30000;
+
 void loop()
 {
   if (!client.connected())
@@ -204,59 +206,70 @@ void loop()
   }
   client.loop();
 
-  if(digitalRead(ascPin) == HIGH) {
-    contador++;
-    // Crear un buffer para el mensaje
-    char mensaje[16]; // Ajusta el tamaño del buffer según tus necesidades
+  float temperature = dht.readTemperature();
+  float humidity = dht.readHumidity();
 
-    // Usar sprintf para formatear el mensaje
-    sprintf(mensaje, "contador %d", contador);
-    client.publish(topic, mensaje); // publish to the topic
+  if (digitalRead(ascPin) == HIGH)
+  {
+    contador++;
+    // Crear un objeto JSON para el mensaje
+    StaticJsonDocument<100> jsonMessage;
+    jsonMessage["from"] = "esp32";
+    jsonMessage["to"] = "broadcast";
+    jsonMessage["action"] = "UPDATE_COUNTER";
+    jsonMessage["value"] = contador;
+
+    char buffer[100];
+    serializeJson(jsonMessage, buffer);
+    client.publish(topic, buffer); // publicar el objeto JSON
     delay(300);
     Serial.println("Asc");
   }
 
-  float temperature = dht.readTemperature();
-  float humidity = dht.readHumidity();
-  
-  if(digitalRead(desPin) == HIGH) {
+  if (digitalRead(desPin) == HIGH)
+  {
     contador--;
-    // Crear un buffer para el mensaje
-    char mensaje[16]; // Ajusta el tamaño del buffer según tus necesidades
+    // Crear un objeto JSON para el mensaje
+    StaticJsonDocument<100> jsonMessage;
+    jsonMessage["from"] = "esp32";
+    jsonMessage["to"] = "broadcast";
+    jsonMessage["action"] = "UPDATE_COUNTER";
+    jsonMessage["value"] = contador;
 
-    // Usar sprintf para formatear el mensaje
-    sprintf(mensaje, "contador %d", contador);
-    client.publish(topic, mensaje); // publish to the topic
+    char buffer[100];
+    serializeJson(jsonMessage, buffer);
+    client.publish(topic, buffer); // publicar el objeto JSON
     delay(300);
     Serial.println("Desc");
   }
-  if(temp) {
-      char mensaje[16]; // Ajusta el tamaño del buffer según tus necesidades
 
-      int val_int = (int) temperature;   // compute the integer part of the float
+  // Verificar el intervalo de envío de temperatura y humedad
+  unsigned long currentTime = millis();
+  if (currentTime - lastTempHumdSendTime >= tempHumdSendInterval)
+  {
+    float temperature = dht.readTemperature();
+    float humidity = dht.readHumidity();
 
-      float val_float = (abs(temperature) - abs(val_int)) * 100000;
+    if (!isnan(temperature) && !isnan(humidity))
+    {
+      // Crear un objeto JSON para los datos de temperatura y humedad
+      StaticJsonDocument<200> jsonData;
+      jsonData["from"] = "esp32";
+      jsonData["to"] = "server";
+      jsonData["action"] = "SEND_DATA";
+      JsonObject data = jsonData.createNestedObject("data");
+      data["temperature"] = temperature;
+      data["humidity"] = humidity;
 
-      int val_fra = (int) val_float;
+      char buffer[200];
+      serializeJson(jsonData, buffer);
+      client.publish(topic, buffer); // publicar el objeto JSON
+      jsonData["to"] = "web";
+      serializeJson(jsonData, buffer);
+      client.publish(topic, buffer); // publicar el objeto JSON
+    }
 
-     // Usar sprintf para formatear el mensaje
-      sprintf (mensaje, "temp %d.%d", val_int, val_fra);
-      // sprintf(mensaje, "temp %d", temperatureInt);
-      client.publish(topic, mensaje);
-      temp = false;
+    // Actualizar el tiempo de envío
+    lastTempHumdSendTime = currentTime;
   }
-  if(humd) {
-      char mensaje[16]; // Ajusta el tamaño del buffer según tus necesidades
-
-      int val_int = (int) humdity;   // compute the integer part of the float
-
-      float val_float = (abs(temperature) - abs(val_int)) * 100000;
-
-      int val_fra = (int) val_float;
-
-     // Usar sprintf para formatear el mensaje
-      sprintf (mensaje, "hum %d.%d", val_int, val_fra);
-      client.publish(topic, mensaje);
-      humd = false;
-  } 
 }

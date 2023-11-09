@@ -4,7 +4,7 @@ import json
 import logging
 import random
 import time
-
+import datetime
 from db_storage import DBStorage
 
 from paho.mqtt import client as mqtt_client
@@ -70,23 +70,29 @@ def on_message(client, userdata, msg):
 
         # check if message is for me
         if msg_dict['to'] != "server":
+            print("server")
             return
 
         # check if message has "action" key
         if "action" not in msg_dict:
+            print("action")
             return
 
         if msg_dict["action"] == "SEND_DATA":
             # verify if message has "data" key
             if "data" not in msg_dict:
+                print("no data")
                 return
 
             # verify if data is a dict
             if not isinstance(msg_dict["data"], dict):
+                print("no instance")
                 return
 
             # verify if data has "temperature" and "humidity" keys
             if "temperature" not in msg_dict["data"] or "humidity" not in msg_dict["data"]:
+                print("no values")
+
                 return
 
             # TODO store data in database
@@ -105,11 +111,13 @@ def on_message(client, userdata, msg):
             print("Getting data from server")
             db = DBStorage()
             db.connect()
-            data = db.get_measurements()
+            end_date = datetime.datetime.now()
+            start_date = end_date - datetime.timedelta(hours=1)
+            data = db.get_measurements_by_time(start_date, end_date)
             db.disconnect()
             print("Data retreived from database")
 
-            msg_dict = {"action" : "SEND_DATA", "data": data}
+            msg_dict = {"from": "server", "to": "web","action" : "SEND_DATA", "data": data}
             out_msg = json.dumps(msg_dict)
             client.publish(msg.topic, out_msg)
 
