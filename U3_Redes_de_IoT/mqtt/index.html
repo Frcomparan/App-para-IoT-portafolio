@@ -36,6 +36,26 @@
         text-align: center;
       }
 
+      .sectionJoke {
+        background-color: rgba(
+          252,
+          213,
+          228,
+          0.944
+        ); /* Light pink with 0.7 opacity */
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        margin: 10px;
+        padding: 10px;
+        width: 80%;
+        text-align: center;
+        color: #ff4081; /* Pink text */
+      }
+
+      .sectionJoke p {
+        margin: 0;
+      }
+
       h2,
       h3 {
         font-size: 36px;
@@ -141,6 +161,9 @@
     </style>
   </head>
   <body>
+    <div class="sectionJoke">
+      <p id="joke">Loading...</p>
+    </div>
     <header>
       <div class="sectionContainer">
         <h2>Kirby's Control Panel</h2>
@@ -156,21 +179,21 @@
       <div class="sectionContainer">
         <h3>Counter Value:</h3>
         <div class="buttonContainer">
-          <h2 id="counter">Cargando...</h2>
+          <h2 id="counter">7</h2>
         </div>
       </div>
 
       <div class="sectionContainer">
         <h3>Temperature Value:</h3>
         <div class="buttonContainer">
-          <h2 id="temperature">Cargando...</h2>
+          <h2 id="temperature">25.5 °C</h2>
         </div>
       </div>
 
       <div class="sectionContainer">
         <h3>Humidity Value:</h3>
         <div class="buttonContainer">
-          <h2 id="humidity">Cargando...</h2>
+          <h2 id="humidity">60 %</h2>
         </div>
       </div>
     </div>
@@ -182,7 +205,6 @@
     </div>
   </body>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
   <script>
     let step = 10; // Puedes ajustar el valor del paso según tus necesidades
     let labels = Array.from({ length: 24 }, (_, i) => i * step); // Crear etiquetas de tiempo con un paso
@@ -226,11 +248,7 @@
   </script>
   <script src="mqtt.js"></script>
   <script>
-    const onButton = document.getElementById('onButton');
-    const offButton = document.getElementById('offButton');
-    const body = document.body;
     let PUB_TOPIC = 'monitores/web';
-
     const url = 'wss://ue91a21d.ala.us-east-1.emqxsl.com:8084/mqtt';
 
     // Create an MQTT client instance
@@ -272,12 +290,23 @@
           document.getElementById('humidity').innerText =
             data['data']['humidity'] + '%';
         }
-        if (data['from'] == 'server' && data['to'] == 'web') {
+        if (
+          data['from'] == 'server' &&
+          data['to'] == 'web' &&
+          data['action'] == 'SEND_DATA'
+        ) {
           updateChart(
             data['data']['labels'],
             data['data']['temperatures'],
             data['data']['humidities']
           );
+        }
+        if (
+          data['from'] == 'server' &&
+          data['to'] == 'web' &&
+          data['action'] == 'SEND_JOKE'
+        ) {
+          document.getElementById('joke').innerText = data['data']['joke'];
         }
         if (
           data['from'] == 'esp32' &&
@@ -291,6 +320,10 @@
       }
     });
 
+    const onButton = document.getElementById('onButton');
+    const offButton = document.getElementById('offButton');
+    const body = document.body;
+
     onButton.addEventListener('click', () => {
       body.style.backgroundImage =
         "url('https://gifdb.com/images/high/kirby-blowing-air-wcalrq9zfsma8rbs.gif')";
@@ -298,7 +331,17 @@
       body.style.backgroundPosition = '80%,10%'; // Adjusted background position
       // Simulate LED deactivation
       // Simulate LED activation
-      client.publish(PUB_TOPIC, JSON.stringify({ led: 1 }));
+      client.publish(
+        PUB_TOPIC,
+        JSON.stringify({
+          from: 'web',
+          to: 'esp32',
+          action: 'led',
+          data: {
+            state: 1,
+          },
+        })
+      );
     });
 
     offButton.addEventListener('click', () => {
@@ -307,7 +350,17 @@
       body.style.backgroundSize = 'cover';
       body.style.backgroundPosition = '80%,10%'; // Adjusted background position
       // Simulate LED deactivation
-      client.publish(PUB_TOPIC, JSON.stringify({ led: 0 }));
+      client.publish(
+        PUB_TOPIC,
+        JSON.stringify({
+          from: 'web',
+          to: 'esp32',
+          action: 'led',
+          data: {
+            state: 0,
+          },
+        })
+      );
     });
 
     document.getElementById('fetch_data').addEventListener('click', (e) => {
@@ -320,5 +373,19 @@
         })
       );
     });
+
+    const get_joke = () => {
+      console.log('Holaaa');
+      client.publish(
+        PUB_TOPIC,
+        JSON.stringify({
+          from: 'web',
+          to: 'server',
+          action: 'GET_JOKE',
+        })
+      );
+    };
+
+    get_joke();
   </script>
 </html>

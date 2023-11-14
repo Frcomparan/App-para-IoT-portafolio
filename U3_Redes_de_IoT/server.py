@@ -6,8 +6,13 @@ import random
 import time
 import datetime
 from db_storage import DBStorage
-
+import requests
 from paho.mqtt import client as mqtt_client
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+API_KEY = os.getenv("API_KEY")
 
 BROKER = 'ue91a21d.ala.us-east-1.emqxsl.com'
 PORT = 8883
@@ -118,6 +123,25 @@ def on_message(client, userdata, msg):
             print("Data retreived from database")
 
             msg_dict = {"from": "server", "to": "web","action" : "SEND_DATA", "data": data}
+            out_msg = json.dumps(msg_dict)
+            client.publish(msg.topic, out_msg)
+        
+        elif msg_dict["action"] == "GET_JOKE":
+            url = "https://daddyjokes.p.rapidapi.com/random"
+
+            headers = {
+                "X-RapidAPI-Key": API_KEY,
+                "X-RapidAPI-Host": "daddyjokes.p.rapidapi.com"
+            }
+
+            response = requests.get(url, headers=headers).json()
+
+
+            print(response)
+
+            data = { "joke": response["joke"] }
+
+            msg_dict = {"from": "server", "to": "web","action" : "SEND_JOKE", "data": data}
             out_msg = json.dumps(msg_dict)
             client.publish(msg.topic, out_msg)
 

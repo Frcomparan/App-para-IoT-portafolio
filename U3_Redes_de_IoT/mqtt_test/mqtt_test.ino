@@ -15,9 +15,6 @@ DHT dht(DHTPIN, DHTTYPE);
 
 int contador = 0;
 
-bool asc, des = false;
-
-bool temp, humd = false;
 // WiFi
 const char *ssid = "W_Aula_WB11";
 const char *password = "itcolima6";
@@ -68,7 +65,9 @@ void setup()
 {
   // Set software serial baud to 115200;
   Serial.begin(115200);
+
   dht.begin();
+
   // connecting to a WiFi network
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED)
@@ -83,6 +82,7 @@ void setup()
   // connecting to a mqtt broker
   client.setServer(mqtt_broker, mqtt_port);
   client.setCallback(callback);
+
   while (!client.connected())
   {
     String client_id = "esp32-client-";
@@ -134,9 +134,9 @@ void callback(char *topic, byte *payload, unsigned int length)
   }
 
   // Check if the "led" key is present in the JSON
-  if (jsonDocument.containsKey("led"))
+  if (jsonDocument["to"] == "esp32" && jsonDocument["action"] == "led")
   {
-    int ledValue = jsonDocument["led"].as<int>();
+    int ledValue = jsonDocument["data"]["state"].as<int>();
 
     // Do something with the "led" value, e.g., turn on or off an LED
     if (ledValue == 1)
@@ -157,20 +157,6 @@ void callback(char *topic, byte *payload, unsigned int length)
     }
   }
 
-  if (jsonDocument.containsKey("temperature"))
-  {
-    Serial.println("Temperature");
-    // Usar sprintf para formatear el mensaje
-    temp = true;
-  }
-
-  if (jsonDocument.containsKey("humidity"))
-  {
-    Serial.println("Humidity");
-    humd = true;
-  }
-
-  Serial.println("-----------------------");
 }
 
 void reconnect()
@@ -205,9 +191,6 @@ void loop()
     reconnect();
   }
   client.loop();
-
-  float temperature = dht.readTemperature();
-  float humidity = dht.readHumidity();
 
   if (digitalRead(ascPin) == HIGH)
   {
