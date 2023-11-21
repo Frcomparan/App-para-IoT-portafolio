@@ -127,6 +127,10 @@
         justify-content: center;
       }
 
+      header .sectionContainer {
+        width: 100%;
+      }
+
       .values_container {
         display: flex;
         flex-wrap: nowrap;
@@ -179,21 +183,21 @@
       <div class="sectionContainer">
         <h3>Counter Value:</h3>
         <div class="buttonContainer">
-          <h2 id="counter">7</h2>
+          <h2 id="counter">...</h2>
         </div>
       </div>
 
       <div class="sectionContainer">
         <h3>Temperature Value:</h3>
         <div class="buttonContainer">
-          <h2 id="temperature">25.5 °C</h2>
+          <h2 id="temperature">...</h2>
         </div>
       </div>
 
       <div class="sectionContainer">
         <h3>Humidity Value:</h3>
         <div class="buttonContainer">
-          <h2 id="humidity">60 %</h2>
+          <h2 id="humidity">...</h2>
         </div>
       </div>
     </div>
@@ -375,7 +379,6 @@
     });
 
     const get_joke = () => {
-      console.log('Holaaa');
       client.publish(
         PUB_TOPIC,
         JSON.stringify({
