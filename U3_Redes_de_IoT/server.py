@@ -64,6 +64,7 @@ def on_disconnect(client, userdata, rc):
 
 def on_message(client, userdata, msg):
     print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
+    
     try:
         message = msg.payload.decode()
 
