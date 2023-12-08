@@ -101,11 +101,21 @@
     </section>
 
     <script>
+      // Función de reproducción de audio
+      function reproducirAudio() {
+        const audioPlayer = document.getElementById('audioPlayer');
+        audioPlayer.play().catch((error) => {
+          console.error('Error al reproducir audio:', error);
+        });
+      }
+
+      // Función para reproducir audio al precionar cada boton
       const playAudioButtons = document.querySelectorAll('.playAudioButton');
       playAudioButtons.forEach((button) => {
         button.addEventListener('click', reproducirAudio);
       });
 
+      // Función para estebler el stream de video y su calidad en bajo
       const setStream = () => {
         const video = document.getElementById('videoStream');
         const videoUrl = 'http://192.168.185.14:81/stream';
@@ -114,12 +124,41 @@
         video.src = videoUrl;
       };
 
+      // Función para establecer la intensidad del led
       const setLedIntensity = (intensity) => {
         fetch(
           `http://192.168.185.14/control?var=led_intensity&val=${intensity}`
         );
       };
 
+      // Función para establecer el movimiento del carro
+      const movRequest = (mov) => {
+        const time = document.getElementById('time').value;
+        console.log({ time });
+        fetch(`http://192.168.185.110/carro?mov=${mov}&time=${time}`, {
+          mode: 'cors',
+        });
+      };
+
+      // Función para encender el led o apagar el led de acuerdo a la luminosidad
+      const setLedState = () => {
+        const luminity = document.querySelector('.show-luminity p').innerHTML;
+        if (luminity < 1400) {
+          setLedIntensity(100);
+        }
+      };
+
+      // Función para obtener la luminosidad
+      const getLuminity = () => {
+        fetch('http://localhost:5000/luminity').then((response) => {
+          response.json().then((data) => {
+            const luminity = document.querySelector('.show-luminity p');
+            luminity.innerHTML = data.luminity;
+          });
+        });
+      };
+
+      // Eventos para la intensidad del led, calidad de camara y botones de movimiento
       document.getElementById('slider').addEventListener('input', (e) => {
         setLedIntensity(e.target.value);
       });
@@ -129,16 +168,6 @@
           `http://192.168.185.14/control?var=framesize&val=${e.target.value}`
         );
       });
-
-      setStream();
-
-      const movRequest = (mov) => {
-        const time = document.getElementById('time').value;
-        console.log({ time });
-        fetch(`http://192.168.185.110/carro?mov=${mov}&time=${time}`, {
-          mode: 'cors',
-        });
-      };
 
       document
         .getElementById('forward')
@@ -154,7 +183,7 @@
         .addEventListener('click', () => movRequest('derecha'));
 
       document.getElementById('fetch_data').addEventListener('click', () => {
-        fetch('http://localhost:5000/luminosity_last_hour').then((response) => {
+        fetch('http://localhost:5000/luminity_last_hour').then((response) => {
           response.json().then((data) => {
             console.log(data);
             const labels = data.labels;
@@ -164,39 +193,13 @@
         });
       });
 
-      // Función de reproducción de audio
-      function reproducirAudio() {
-        const audioPlayer = document.getElementById('audioPlayer');
-        audioPlayer.play().catch((error) => {
-          console.error('Error al reproducir audio:', error);
-        });
-      }
+      // Función para establecer el stream de video
+      setStream();
 
-      // Function to get the luminity
-      const getLuminity = () => {
-        fetch('http://localhost:5000/luminosity').then((response) => {
-          response.json().then((data) => {
-            const luminity = document.querySelector('.show-luminity p');
-            luminity.innerHTML = data.luminity;
-          });
-        });
-      };
-
-      // Set led slider in 100 if luminity is lower than 1300
-      const setLedSlider = () => {
-        const luminity = document.querySelector('.show-luminity p').innerHTML;
-        const slider = document.getElementById('slider');
-        if (luminity < 1300) {
-          setLedIntensity(100);
-        } else {
-          setLedIntensity(0);
-        }
-      };
-
-      // // Function to get the luminity every 2 seconds
+      // Obtener la luminosidad cada segundo
       setInterval(() => {
         getLuminity();
-        setLedSlider();
+        setLedState();
       }, 1000);
     </script>
   </body>
@@ -205,7 +208,7 @@
     let step = 10; // Puedes ajustar el valor del paso según tus necesidades
     let labels = Array.from({ length: 24 }, (_, i) => i * step); // Crear etiquetas de tiempo con un paso
 
-    let luminities = [282, 350, 411, 502, 635, 809, 947, 1402, 3700, 5267]; // Datos de humedad (ajusta la cantidad según tus necesidades)
+    let luminities = [282, 350, 411, 502, 635, 809, 947, 1402, 3700, 5267];
 
     let chart = new Chart(document.getElementById('line-chart'), {
       type: 'line',

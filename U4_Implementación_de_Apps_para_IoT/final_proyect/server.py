@@ -9,39 +9,39 @@ import datetime
 # URL del servidor
 url = "http://192.168.185.110"
 
-actual_luminosity = 0
+actual_luminity = 0
 
 # Función para obtener la luminosidad
-def save_luminosity():
-    global actual_luminosity 
+def save_luminity():
+    global actual_luminity 
     # Se obtiene la respuesta del servidor
     response = requests.get(url + "/luminosity")
 
-    luminosity = response.text
+    luminity = response.text
 
-    print("Luminosity: " + luminosity)
+    print("luminity: " + luminity)
 
-    actual_luminosity = luminosity 
+    actual_luminity = luminity 
 
     db = DBStorage()
     db.connect()
-    db.insert(luminosity)
+    db.insert(luminity)
     db.disconnect()
 
 def update_luminity():
-    global actual_luminosity 
+    global actual_luminity 
     # Se obtiene la respuesta del servidor
     response = requests.get(url + "/luminosity")
 
-    luminosity = response.text
+    luminity = response.text
 
-    print("Luminosity: " + luminosity)
+    print("luminity: " + luminity)
 
-    actual_luminosity = luminosity 
+    actual_luminity = luminity 
     
 def timer_save():
     while True:
-        save_luminosity()
+        save_luminity()
         time.sleep(30)
 
 def timer_update():
@@ -57,22 +57,22 @@ app = flask.Flask(__name__)
 cors = flask_cors.CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Ruta para retornar la luminosidad
-@app.route('/luminosity', methods=['GET'])
-def get_luminosity():
-    global actual_luminosity
-    return {'luminity': actual_luminosity}
+@app.route('/luminity', methods=['GET'])
+def get_luminity():
+    global actual_luminity
+    return {'luminity': actual_luminity}
 
 # Ruta para obtener la luminosidad de la ultima hora
-@app.route('/luminosity_last_hour', methods=['GET'])
-def get_luminosity_last_hour():
+@app.route('/luminity_last_hour', methods=['GET'])
+def get_luminity_last_hour():
     db = DBStorage()
     db.connect()
     end_date = datetime.datetime.now()
     start_date = end_date - datetime.timedelta(hours=1)
-    luminosity = db.get_measurements_by_time(start_date, end_date)
-    print(luminosity)
+    luminity = db.get_measurements_by_time(start_date, end_date)
+    print(luminity)
     db.disconnect()
-    return luminosity
+    return luminity
 
 if __name__ == '__main__':
     # Obtner la luminosidad cada 3 segundos
